@@ -1960,6 +1960,10 @@ var _dbReady = false;
 var _dbQueue = [];
 
 function openDB(cb) {
+  if (typeof indexedDB === 'undefined') {
+    alert('⚠️ ডায়াগনস্টিক: এই ব্রাউজার/অ্যাপে IndexedDB সাপোর্ট নেই! এটাই ডেটা সেভ না হওয়ার কারণ।');
+    return;
+  }
   if (_db) { cb(_db); return; }
   var req = indexedDB.open('DentaCareDB', 2);
   req.onupgradeneeded = function(e) {
@@ -1981,6 +1985,10 @@ function openDB(cb) {
   };
   req.onerror = function(e) {
     console.error('IndexedDB open error', e);
+    alert('⚠️ ডায়াগনস্টিক: IndexedDB open error: ' + (e.target.error ? e.target.error.message : 'unknown') + '\\nname: ' + (e.target.error ? e.target.error.name : ''));
+  };
+  req.onblocked = function(e) {
+    alert('⚠️ ডায়াগনস্টিক: IndexedDB open blocked (অন্য ট্যাব/সেশন লক করে রেখেছে)');
   };
 }
 
@@ -1991,11 +1999,28 @@ function savePatients(cb) {
     var store = tx.objectStore('patients');
     // Clear then re-add all
     var clearReq = store.clear();
-    clearReq.onsuccess = function() {
-      patients.forEach(function(p) { store.put(p); });
+    clearReq.onerror = function(e) {
+      alert('⚠️ ডায়াগনস্টিক: clear() error: ' + (e.target.error ? e.target.error.message : 'unknown'));
     };
-    tx.oncomplete = function() { if (cb) cb(); };
-    tx.onerror = function(e) { console.error('savePatients error', e); };
+    clearReq.onsuccess = function() {
+      patients.forEach(function(p) {
+        var putReq = store.put(p);
+        putReq.onerror = function(e) {
+          alert('⚠️ ডায়াগনস্টিক: put() error saving "' + p.name + '": ' + (e.target.error ? e.target.error.message : 'unknown') + '\\nname: ' + (e.target.error ? e.target.error.name : ''));
+        };
+      });
+    };
+    tx.oncomplete = function() {
+      window._lastSaveOk = true;
+      if (cb) cb();
+    };
+    tx.onerror = function(e) {
+      console.error('savePatients error', e);
+      alert('⚠️ ডায়াগনস্টিক: savePatients TRANSACTION error: ' + (e.target.error ? e.target.error.message : 'unknown') + '\\nname: ' + (e.target.error ? e.target.error.name : ''));
+    };
+    tx.onabort = function(e) {
+      alert('⚠️ ডায়াগনস্টিক: savePatients TRANSACTION ABORTED: ' + (tx.error ? tx.error.message : 'unknown reason') + '\\nname: ' + (tx.error ? tx.error.name : ''));
+    };
   });
 }
 
@@ -2006,7 +2031,24 @@ function loadPatients(cb) {
     var store = tx.objectStore('patients');
     var req = store.getAll();
     req.onsuccess = function(e) { cb(e.target.result || []); };
-    req.onerror = function() { cb([]); };
+    req.onerror = function(e) {
+      alert('⚠️ ডায়াগনস্টিক: loadPatients error: ' + (e.target.error ? e.target.error.message : 'unknown'));
+      cb([]);
+    };
+  });
+}
+
+// Persistent storage request + visible diagnostic
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().then(function(granted) {
+    window._persistGranted = granted;
+    console.log('Persistent storage granted:', granted);
+  });
+}
+if (navigator.storage && navigator.storage.estimate) {
+  navigator.storage.estimate().then(function(est) {
+    console.log('Storage estimate:', est);
+    window._storageEstimate = est;
   });
 }
 
@@ -5744,6 +5786,9 @@ loadSettings();
 migrateFromLocalStorage();
 loadPatients(function(loaded) {
   patients = loaded;
+  setTimeout(function(){
+    alert('🔍 ডায়াগনস্টিক (স্টার্টআপ):\nIndexedDB থেকে লোড হয়েছে: ' + patients.length + ' জন রুগি\nPersistent storage granted: ' + window._persistGranted + '\nindexedDB সাপোর্ট: ' + (typeof indexedDB !== 'undefined'));
+  }, 500);
   if (patients.length === 0) {
     var today = getDate();
     patients.push({
