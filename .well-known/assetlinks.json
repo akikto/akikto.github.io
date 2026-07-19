@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.akikto.twa",
+        "sha256_cert_fingerprints": ["8C:47:D8:30:D1:BA:E4:32:91:6C:2C:BF:31:63:55:74:CE:F5:D0:3F:FC:7E:1D:C2:90:30:6A:27:50:C7:A1:75"]
+      }
+    }]
