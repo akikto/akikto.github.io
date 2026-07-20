@@ -1966,22 +1966,26 @@ function openDB(cb) { cb(null); }
 function savePatients(cb) {
   try {
     localStorage.setItem('dentalPatients', JSON.stringify(patients));
-    var verify = JSON.parse(localStorage.getItem('dentalPatients') || '[]');
-    console.log('savePatients: wrote', patients.length, 'verified back', verify.length);
   } catch(e) {
     console.error('savePatients error', e);
     alert('⚠️ রুগির তথ্য সেভ করতে সমস্যা হয়েছে: ' + (e && e.message ? e.message : e));
   }
-  if (cb) cb();
+  if (cb) setTimeout(cb, 0);
 }
 
 // Load all patients from localStorage
+// NOTE: deferred via setTimeout so this always runs AFTER the rest of the
+// top-level script has finished initializing (matches the timing the old
+// async IndexedDB version had — some globals like treatmentGuideData are
+// defined later in this file and are read by code this callback triggers).
 function loadPatients(cb) {
-  var arr = [];
-  try {
-    arr = JSON.parse(localStorage.getItem('dentalPatients') || '[]');
-  } catch(e) { arr = []; }
-  cb(arr || []);
+  setTimeout(function() {
+    var arr = [];
+    try {
+      arr = JSON.parse(localStorage.getItem('dentalPatients') || '[]');
+    } catch(e) { arr = []; }
+    cb(arr || []);
+  }, 0);
 }
 
 // Delete single patient from localStorage
@@ -1991,7 +1995,7 @@ function deletePatientFromDB(patId, cb) {
     arr = arr.filter(function(p){ return p.id !== patId; });
     localStorage.setItem('dentalPatients', JSON.stringify(arr));
   } catch(e) { console.error('deletePatientFromDB error', e); }
-  if (cb) cb();
+  if (cb) setTimeout(cb, 0);
 }
 
 // One-time migration no longer needed (localStorage is now the primary
@@ -3402,19 +3406,21 @@ function saveDirectRxToDB(entry, cb) {
     var idx = arr.findIndex(function(e){ return e.id === entry.id; });
     if (idx >= 0) { arr[idx] = entry; } else { arr.push(entry); }
     localStorage.setItem('directRxHistory', JSON.stringify(arr));
-    if (cb) cb();
+    if (cb) setTimeout(cb, 0);
   } catch(e) {
     console.error('saveDirectRx error', e);
-    if (cb) cb(e);
+    if (cb) setTimeout(function(){ cb(e); }, 0);
   }
 }
 function loadDirectRxHistory(cb) {
-  var arr = [];
-  try {
-    arr = JSON.parse(localStorage.getItem('directRxHistory') || '[]');
-  } catch(e) { arr = []; }
-  arr.sort(function(a,b){return b.id - a.id;});
-  cb(arr);
+  setTimeout(function() {
+    var arr = [];
+    try {
+      arr = JSON.parse(localStorage.getItem('directRxHistory') || '[]');
+    } catch(e) { arr = []; }
+    arr.sort(function(a,b){return b.id - a.id;});
+    cb(arr);
+  }, 0);
 }
 function deleteDirectRxFromDB(id, cb) {
   try {
@@ -3422,7 +3428,7 @@ function deleteDirectRxFromDB(id, cb) {
     arr = arr.filter(function(e){ return e.id !== id; });
     localStorage.setItem('directRxHistory', JSON.stringify(arr));
   } catch(e) { console.error('deleteDirectRx error', e); }
-  if (cb) cb();
+  if (cb) setTimeout(cb, 0);
 }
 // No-op: localStorage is now the primary store already.
 function migrateDirectRxHistory() {}
@@ -5684,9 +5690,6 @@ loadSettings();
 migrateFromLocalStorage();
 loadPatients(function(loaded) {
   patients = loaded;
-  setTimeout(function(){
-    alert('🔍 ভার্সন চেক (localStorage-fixed-v1):\nলোড হয়েছে: ' + patients.length + ' জন রুগি\nনামগুলো: ' + patients.map(function(p){return p.name;}).join(', '));
-  }, 400);
   if (patients.length === 0) {
     var today = getDate();
     patients.push({
