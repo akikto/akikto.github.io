@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-dental-clinic-v1';
+const CACHE_NAME = 'my-dental-clinic-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
