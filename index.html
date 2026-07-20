@@ -1966,6 +1966,8 @@ function openDB(cb) { cb(null); }
 function savePatients(cb) {
   try {
     localStorage.setItem('dentalPatients', JSON.stringify(patients));
+    var verify = JSON.parse(localStorage.getItem('dentalPatients') || '[]');
+    console.log('savePatients: wrote', patients.length, 'verified back', verify.length);
   } catch(e) {
     console.error('savePatients error', e);
     alert('⚠️ রুগির তথ্য সেভ করতে সমস্যা হয়েছে: ' + (e && e.message ? e.message : e));
@@ -5682,6 +5684,9 @@ loadSettings();
 migrateFromLocalStorage();
 loadPatients(function(loaded) {
   patients = loaded;
+  setTimeout(function(){
+    alert('🔍 ভার্সন চেক (localStorage-fixed-v1):\nলোড হয়েছে: ' + patients.length + ' জন রুগি\nনামগুলো: ' + patients.map(function(p){return p.name;}).join(', '));
+  }, 400);
   if (patients.length === 0) {
     var today = getDate();
     patients.push({
