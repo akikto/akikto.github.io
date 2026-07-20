@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storage Test</title>
+<style>
+  body { font-family: sans-serif; padding: 24px; font-size: 18px; }
+  button { font-size: 20px; padding: 14px 24px; margin: 8px 0; display: block; width: 100%; }
+  #result { margin-top: 20px; padding: 16px; background: #f0f0f0; border-radius: 8px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <h2>🔍 Storage Test</h2>
+  <button onclick="addOne()">➕ কাউন্ট বাড়ান (Add One)</button>
+  <button onclick="clearAll()">🗑️ মুছে ফেলুন (Clear)</button>
+  <div id="result">লোড হচ্ছে...</div>
+
+  <script>
+    function showStatus() {
+      var out = '';
+      try {
+        var count = localStorage.getItem('testCount') || '0';
+        out += '✅ localStorage কাউন্ট: ' + count + '\n';
+      } catch(e) {
+        out += '❌ localStorage error: ' + e.message + '\n';
+      }
+      out += 'User Agent: ' + navigator.userAgent + '\n';
+      out += 'Cookie enabled: ' + navigator.cookieEnabled + '\n';
+      if (navigator.storage && navigator.storage.estimate) {
+        navigator.storage.estimate().then(function(est){
+          document.getElementById('result').innerText = out + 'Storage quota: ' + JSON.stringify(est);
+        });
+      }
+      document.getElementById('result').innerText = out;
+    }
+    function addOne() {
+      try {
+        var count = parseInt(localStorage.getItem('testCount') || '0', 10);
+        count++;
+        localStorage.setItem('testCount', String(count));
+        alert('Saved! Count is now: ' + count + '\nএবার Refresh করে দেখুন সংখ্যাটা থাকে কিনা।');
+        showStatus();
+      } catch(e) {
+        alert('❌ Save FAILED: ' + e.message);
+      }
+    }
+    function clearAll() {
+      localStorage.removeItem('testCount');
+      showStatus();
+    }
+    showStatus();
+  </script>
+</body>
+</html>
