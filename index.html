@@ -1096,7 +1096,7 @@ header .logo-text p {
       </div>
       <div class="logo-text">
         <h1>My Dental Clinic <span style="font-family:'Hind Siliguri',sans-serif;font-weight:800;">বাংলা</span></h1>
-        <p>Patient Management System</p>
+        <p>Patient Management System [v-LS-FIX-2]</p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -2016,11 +2016,13 @@ function compressImage(dataUrl, maxW, quality, cb) {
   img.onerror = function(){ cb(dataUrl); };
   img.src = dataUrl;
 }
-patients = patients.map(function(p) {
-  if (!p.date) p.date = getDate();
-  return p;
-});
-savePatients();
+// NOTE: date-backfill for patients missing a `date` field used to run HERE,
+// at top-level script execution time — but `patients` is still the empty
+// initial array at this point (real data loads asynchronously later via
+// loadPatients()). Calling savePatients() here was overwriting storage with
+// an empty array on every single page load, wiping out any previously saved
+// patient. This logic now runs inside the loadPatients() callback instead,
+// after real data has actually loaded — see below.
 
 
 var TEETH_DATA = [
@@ -5690,6 +5692,14 @@ loadSettings();
 migrateFromLocalStorage();
 loadPatients(function(loaded) {
   patients = loaded;
+  // Backfill missing `date` field on existing patients (moved here from
+  // top-level script — see note above openDB/savePatients definitions).
+  var neededBackfill = false;
+  patients = patients.map(function(p) {
+    if (!p.date) { p.date = getDate(); neededBackfill = true; }
+    return p;
+  });
+  if (neededBackfill) savePatients();
   if (patients.length === 0) {
     var today = getDate();
     patients.push({
